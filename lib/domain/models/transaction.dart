@@ -20,7 +20,11 @@ class Transaction {
   final RecurrenceFrequency recurrenceFrequency;
   final String? accountId;
   final String? debtId;
+  final String? goalId;
   final String? note;
+  // For goal contributions: false = scheduled/unpaid, true = paid/completed.
+  // All non-goal transactions default to true.
+  final bool isPaid;
 
   const Transaction({
     required this.id,
@@ -33,7 +37,9 @@ class Transaction {
     this.recurrenceFrequency = RecurrenceFrequency.none,
     this.accountId,
     this.debtId,
+    this.goalId,
     this.note,
+    this.isPaid = true,
   });
 
   Transaction copyWith({
@@ -47,10 +53,13 @@ class Transaction {
     RecurrenceFrequency? recurrenceFrequency,
     String? accountId,
     String? debtId,
+    String? goalId,
     String? note,
+    bool? isPaid,
     bool clearNote = false,
     bool clearAccountId = false,
     bool clearDebtId = false,
+    bool clearGoalId = false,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -63,7 +72,9 @@ class Transaction {
       recurrenceFrequency: recurrenceFrequency ?? this.recurrenceFrequency,
       accountId: clearAccountId ? null : (accountId ?? this.accountId),
       debtId: clearDebtId ? null : (debtId ?? this.debtId),
+      goalId: clearGoalId ? null : (goalId ?? this.goalId),
       note: clearNote ? null : (note ?? this.note),
+      isPaid: isPaid ?? this.isPaid,
     );
   }
 
@@ -78,7 +89,9 @@ class Transaction {
     'recurrenceFrequency': recurrenceFrequency.name,
     'accountId': accountId,
     'debtId': debtId,
+    'goalId': goalId,
     'note': note,
+    'isPaid': isPaid,
   };
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
@@ -101,7 +114,10 @@ class Transaction {
       ),
       accountId: json['accountId'] as String?,
       debtId: json['debtId'] as String?,
+      goalId: json['goalId'] as String?,
       note: json['note'] as String?,
+      // Default true so existing stored transactions are treated as paid
+      isPaid: json['isPaid'] as bool? ?? true,
     );
   }
 

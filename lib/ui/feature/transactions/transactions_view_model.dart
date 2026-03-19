@@ -14,7 +14,10 @@ class TransactionsViewModel extends ChangeNotifier {
   String? _error;
   TransactionType? _filterType;
 
-  TransactionsViewModel(this._txRepo, this._catRepo);
+  TransactionsViewModel(this._txRepo, this._catRepo) {
+    _txRepo.addListener(_onRepositoryChanged);
+    _catRepo.addListener(_onRepositoryChanged);
+  }
 
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -142,5 +145,16 @@ class TransactionsViewModel extends ChangeNotifier {
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
+  }
+
+  void _onRepositoryChanged() {
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _txRepo.removeListener(_onRepositoryChanged);
+    _catRepo.removeListener(_onRepositoryChanged);
+    super.dispose();
   }
 }

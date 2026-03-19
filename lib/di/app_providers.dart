@@ -1,6 +1,8 @@
 import 'package:financier/data/repositories/accounts_repository.dart';
 import 'package:financier/data/repositories/categories_repository.dart';
 import 'package:financier/data/repositories/debt_repository.dart';
+import 'package:financier/data/repositories/goal_milestones_repository.dart';
+import 'package:financier/data/repositories/goals_repository.dart';
 import 'package:financier/data/repositories/transactions_repository.dart';
 import 'package:financier/data/services/data_port_service.dart';
 import 'package:financier/data/services/local_storage_service.dart';
@@ -9,6 +11,8 @@ import 'package:financier/ui/feature/budget/budget_view_model.dart';
 import 'package:financier/ui/feature/data_port/data_port_view_model.dart';
 import 'package:financier/ui/feature/dashboard/dashboard_view_model.dart';
 import 'package:financier/ui/feature/debt/debt_view_model.dart';
+import 'package:financier/ui/feature/goals/goals_view_model.dart';
+import 'package:financier/ui/feature/goals/goal_milestones_view_model.dart';
 import 'package:financier/ui/feature/transactions/transactions_view_model.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
@@ -22,6 +26,8 @@ Future<List<SingleChildWidget>> buildProviders() async {
   final transactionsRepo = TransactionsRepository(storage);
   final debtRepo = DebtRepository(storage);
   final categoriesRepo = CategoriesRepository(storage);
+  final goalsRepo = GoalsRepository(storage, transactionsRepo);
+  final milestonesRepo = GoalMilestonesRepository(storage);
   final dataPortService = DataPortService(
     storage,
     accountsRepo,
@@ -32,10 +38,16 @@ Future<List<SingleChildWidget>> buildProviders() async {
 
   return [
     Provider<LocalStorageService>.value(value: storage),
-    Provider<AccountsRepository>.value(value: accountsRepo),
-    Provider<TransactionsRepository>.value(value: transactionsRepo),
-    Provider<DebtRepository>.value(value: debtRepo),
-    Provider<CategoriesRepository>.value(value: categoriesRepo),
+    ChangeNotifierProvider<AccountsRepository>.value(value: accountsRepo),
+    ChangeNotifierProvider<TransactionsRepository>.value(
+      value: transactionsRepo,
+    ),
+    ChangeNotifierProvider<DebtRepository>.value(value: debtRepo),
+    ChangeNotifierProvider<CategoriesRepository>.value(value: categoriesRepo),
+    ChangeNotifierProvider<GoalsRepository>.value(value: goalsRepo),
+    ChangeNotifierProvider<GoalMilestonesRepository>.value(
+      value: milestonesRepo,
+    ),
     Provider<DataPortService>.value(value: dataPortService),
     ChangeNotifierProvider<AccountsViewModel>(
       create: (_) => AccountsViewModel(accountsRepo),
@@ -51,10 +63,23 @@ Future<List<SingleChildWidget>> buildProviders() async {
     ),
     ChangeNotifierProvider<DashboardViewModel>(
       create: (_) =>
-          DashboardViewModel(transactionsRepo, accountsRepo, debtRepo),
+          DashboardViewModel(
+            transactionsRepo,
+            accountsRepo,
+            debtRepo,
+            goalsRepo,
+            milestonesRepo,
+          ),
     ),
     ChangeNotifierProvider<DataPortViewModel>(
       create: (_) => DataPortViewModel(dataPortService),
+    ),
+    ChangeNotifierProvider<GoalsViewModel>(
+      create: (_) =>
+          GoalsViewModel(goalsRepo, milestonesRepo, transactionsRepo),
+    ),
+    ChangeNotifierProvider<GoalMilestonesViewModel>(
+      create: (_) => GoalMilestonesViewModel(milestonesRepo),
     ),
   ];
 }

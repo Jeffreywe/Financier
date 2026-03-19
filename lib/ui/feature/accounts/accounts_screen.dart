@@ -44,7 +44,21 @@ class AccountsScreen extends StatelessWidget {
                     onDelete: () => _confirmDelete(ctx, vm, vm.accounts[i]),
                   ),
                 ),
-                const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.trending_up),
+                      label: const Text('Savings Goals'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.savings,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () => context.pushNamed('goals'),
+                    ),
+                  ),
+                ),
+                const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
               ],
             ),
     );

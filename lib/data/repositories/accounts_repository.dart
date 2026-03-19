@@ -1,7 +1,8 @@
 import 'package:financier/data/services/local_storage_service.dart';
 import 'package:financier/domain/models/account.dart';
+import 'package:flutter/foundation.dart';
 
-class AccountsRepository {
+class AccountsRepository extends ChangeNotifier {
   final LocalStorageService _storage;
   List<Account> _cache = [];
 
@@ -11,6 +12,7 @@ class AccountsRepository {
 
   void _load() {
     _cache = _storage.readAccounts().map(Account.fromJson).toList();
+    notifyListeners();
   }
 
   List<Account> get all => List.unmodifiable(_cache);
@@ -28,6 +30,7 @@ class AccountsRepository {
   Future<void> add(Account account) async {
     _cache.add(account);
     await _persist();
+    notifyListeners();
   }
 
   Future<void> update(Account account) async {
@@ -35,16 +38,19 @@ class AccountsRepository {
     if (idx == -1) return;
     _cache[idx] = account;
     await _persist();
+    notifyListeners();
   }
 
   Future<void> delete(String id) async {
     _cache.removeWhere((a) => a.id == id);
     await _persist();
+    notifyListeners();
   }
 
   Future<void> replaceAll(List<Account> accounts) async {
     _cache = List<Account>.from(accounts);
     await _persist();
+    notifyListeners();
   }
 
   Future<void> _persist() =>

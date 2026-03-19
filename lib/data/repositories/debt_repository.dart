@@ -1,7 +1,8 @@
 import 'package:financier/data/services/local_storage_service.dart';
 import 'package:financier/domain/models/debt.dart';
+import 'package:flutter/foundation.dart';
 
-class DebtRepository {
+class DebtRepository extends ChangeNotifier {
   final LocalStorageService _storage;
   List<Debt> _cache = [];
 
@@ -11,6 +12,7 @@ class DebtRepository {
 
   void _load() {
     _cache = _storage.readDebts().map(Debt.fromJson).toList();
+    notifyListeners();
   }
 
   List<Debt> get all => List.unmodifiable(_cache);
@@ -23,6 +25,7 @@ class DebtRepository {
   Future<void> add(Debt debt) async {
     _cache.add(debt);
     await _persist();
+    notifyListeners();
   }
 
   Future<void> update(Debt debt) async {
@@ -30,16 +33,19 @@ class DebtRepository {
     if (idx == -1) return;
     _cache[idx] = debt;
     await _persist();
+    notifyListeners();
   }
 
   Future<void> delete(String id) async {
     _cache.removeWhere((d) => d.id == id);
     await _persist();
+    notifyListeners();
   }
 
   Future<void> replaceAll(List<Debt> debts) async {
     _cache = List<Debt>.from(debts);
     await _persist();
+    notifyListeners();
   }
 
   Future<void> _persist() =>

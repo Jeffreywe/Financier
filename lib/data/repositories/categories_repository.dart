@@ -1,7 +1,8 @@
 import 'package:financier/data/services/local_storage_service.dart';
 import 'package:financier/domain/models/budget_category.dart';
+import 'package:flutter/foundation.dart';
 
-class CategoriesRepository {
+class CategoriesRepository extends ChangeNotifier {
   final LocalStorageService _storage;
   List<BudgetCategory> _cache = [];
 
@@ -16,6 +17,7 @@ class CategoriesRepository {
     } else {
       _cache = stored.map(BudgetCategory.fromJson).toList();
     }
+    notifyListeners();
   }
 
   List<BudgetCategory> get all => List.unmodifiable(_cache);
@@ -35,12 +37,14 @@ class CategoriesRepository {
     if (_cache.isEmpty) {
       _cache = List.of(defaultBudgetCategories);
       await _persist();
+      notifyListeners();
     }
   }
 
   Future<void> add(BudgetCategory category) async {
     _cache.add(category);
     await _persist();
+    notifyListeners();
   }
 
   Future<void> update(BudgetCategory category) async {
@@ -48,6 +52,7 @@ class CategoriesRepository {
     if (idx == -1) return;
     _cache[idx] = category;
     await _persist();
+    notifyListeners();
   }
 
   Future<void> delete(String id) async {
@@ -56,11 +61,13 @@ class CategoriesRepository {
     if (cat == null || cat.isDefault) return;
     _cache.removeWhere((c) => c.id == id);
     await _persist();
+    notifyListeners();
   }
 
   Future<void> replaceAll(List<BudgetCategory> categories) async {
     _cache = List<BudgetCategory>.from(categories);
     await _persist();
+    notifyListeners();
   }
 
   Future<void> _persist() =>

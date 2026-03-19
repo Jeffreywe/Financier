@@ -1,6 +1,8 @@
 import 'package:financier/domain/models/transaction.dart';
 import 'package:financier/ui/core/themes/app_theme.dart';
 import 'package:financier/ui/feature/dashboard/dashboard_view_model.dart';
+import 'package:financier/ui/feature/goals/goal_milestones_view_model.dart';
+import 'package:financier/ui/feature/goals/goals_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -577,6 +579,8 @@ class _MonthCalendarCardState extends State<_MonthCalendarCard> {
                             leading: InkWell(
                               onTap: () async {
                                 await widget.vm.toggleOutlookItemPaid(item);
+                                context.read<GoalsViewModel>().refresh();
+                                context.read<GoalMilestonesViewModel>().refresh();
                                 setSheetState(() {});
                               },
                               borderRadius: BorderRadius.circular(14),
@@ -697,7 +701,11 @@ class _UpcomingTile extends StatelessWidget {
     final dateFmt = DateFormat('MMM d');
     return ListTile(
       leading: InkWell(
-        onTap: () => vm.toggleOccurrencePaid(tx.id, item.nextDate),
+        onTap: () async {
+          await vm.toggleOccurrencePaid(tx.id, item.nextDate);
+          context.read<GoalsViewModel>().refresh();
+          context.read<GoalMilestonesViewModel>().refresh();
+        },
         borderRadius: BorderRadius.circular(14),
         child: Icon(
           isPaid ? Icons.check_circle : Icons.radio_button_unchecked,
@@ -760,7 +768,11 @@ class _RecentTxTile extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       leading: InkWell(
-        onTap: () => vm.toggleOccurrencePaid(transaction.id, transaction.date),
+        onTap: () async {
+          await vm.toggleOccurrencePaid(transaction.id, transaction.date);
+          context.read<GoalsViewModel>().refresh();
+          context.read<GoalMilestonesViewModel>().refresh();
+        },
         borderRadius: BorderRadius.circular(14),
         child: Icon(
           isPaid ? Icons.check_circle : Icons.radio_button_unchecked,
@@ -1086,7 +1098,11 @@ class _PeriodCard extends StatelessWidget {
                   child: Row(
                     children: [
                       InkWell(
-                        onTap: () => vm.toggleOutlookItemPaid(item),
+                        onTap: () async {
+                          await vm.toggleOutlookItemPaid(item);
+                          context.read<GoalsViewModel>().refresh();
+                          context.read<GoalMilestonesViewModel>().refresh();
+                        },
                         borderRadius: BorderRadius.circular(14),
                         child: Padding(
                           padding: const EdgeInsets.all(2),
@@ -1180,7 +1196,11 @@ class _PeriodCard extends StatelessWidget {
                   child: Row(
                     children: [
                       InkWell(
-                        onTap: () => vm.toggleOutlookItemPaid(item),
+                        onTap: () async {
+                          await vm.toggleOutlookItemPaid(item);
+                          context.read<GoalsViewModel>().refresh();
+                          context.read<GoalMilestonesViewModel>().refresh();
+                        },
                         borderRadius: BorderRadius.circular(14),
                         child: Padding(
                           padding: const EdgeInsets.all(2),

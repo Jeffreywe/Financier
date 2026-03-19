@@ -1,7 +1,8 @@
 import 'package:financier/data/services/local_storage_service.dart';
 import 'package:financier/domain/models/transaction.dart';
+import 'package:flutter/foundation.dart';
 
-class TransactionsRepository {
+class TransactionsRepository extends ChangeNotifier {
   final LocalStorageService _storage;
   List<Transaction> _cache = [];
   Map<String, bool> _paidOccurrences = {};
@@ -14,18 +15,45 @@ class TransactionsRepository {
     _cache = _storage.readTransactions().map(Transaction.fromJson).toList();
     _cache.sort((a, b) => b.date.compareTo(a.date));
     _paidOccurrences = _storage.readPaidOccurrences();
+    notifyListeners();
   }
 
   List<Transaction> get all => List.unmodifiable(_cache);
+
+  Transaction? findById(String id) {
+    try {
+      return _cache.firstWhere((t) => t.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
 
   String _occurrenceKey(String transactionId, DateTime date) {
     final normalized = DateTime(date.year, date.month, date.day);
     return '$transactionId|${normalized.toIso8601String()}';
   }
 
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
   bool isOccurrencePaid(String transactionId, DateTime date) {
     final key = _occurrenceKey(transactionId, date);
-    return _paidOccurrences[key] ?? false;
+    final override = _paidOccurrences[key];
+    if (override != null) return override;
+
+    final transaction = findById(transactionId);
+    if (transaction == null) return false;
+
+    if (!transaction.isRecurring) {
+      return transaction.isPaid;
+    }
+
+    if (_isSameDay(transaction.date, date)) {
+      return transaction.isPaid;
+    }
+
+    return false;
   }
 
   Future<void> setOccurrencePaid(
@@ -33,13 +61,29 @@ class TransactionsRepository {
     DateTime date,
     bool isPaid,
   ) async {
+    final transaction = findById(transactionId);
+    final isOriginalOccurrence =
+        transaction != null && _isSameDay(transaction.date, date);
+    final shouldPersistOnTransaction =
+        transaction != null && (!transaction.isRecurring || isOriginalOccurrence);
+
     final key = _occurrenceKey(transactionId, date);
+
+    if (shouldPersistOnTransaction) {
+      _paidOccurrences.remove(key);
+      await _storage.writePaidOccurrences(_paidOccurrences);
+      await update(transaction.copyWith(isPaid: isPaid));
+      notifyListeners();
+      return;
+    }
+
     if (isPaid) {
       _paidOccurrences[key] = true;
     } else {
       _paidOccurrences.remove(key);
     }
     await _storage.writePaidOccurrences(_paidOccurrences);
+    notifyListeners();
   }
 
   Future<void> toggleOccurrencePaid(String transactionId, DateTime date) async {
@@ -188,6 +232,7 @@ class TransactionsRepository {
     _cache.add(transaction);
     _cache.sort((a, b) => b.date.compareTo(a.date));
     await _persist();
+    notifyListeners();
   }
 
   Future<void> update(Transaction transaction) async {
@@ -196,6 +241,7 @@ class TransactionsRepository {
     _cache[idx] = transaction;
     _cache.sort((a, b) => b.date.compareTo(a.date));
     await _persist();
+    notifyListeners();
   }
 
   Future<void> delete(String id) async {
@@ -203,6 +249,26 @@ class TransactionsRepository {
     _paidOccurrences.removeWhere((key, _) => key.startsWith('$id|'));
     await _storage.writePaidOccurrences(_paidOccurrences);
     await _persist();
+    notifyListeners();
+  }
+
+  Future<void> deleteForGoal(String goalId) async {
+    final removedIds = _cache
+        .where((t) => t.goalId == goalId)
+        .map((t) => t.id)
+        .toSet();
+
+    if (removedIds.isEmpty) return;
+
+    _cache.removeWhere((t) => t.goalId == goalId);
+    _paidOccurrences.removeWhere((key, _) {
+      final txId = key.split('|').first;
+      return removedIds.contains(txId);
+    });
+
+    await _storage.writePaidOccurrences(_paidOccurrences);
+    await _persist();
+    notifyListeners();
   }
 
   Future<void> replaceAll(List<Transaction> transactions) async {
@@ -215,6 +281,7 @@ class TransactionsRepository {
     });
     await _storage.writePaidOccurrences(_paidOccurrences);
     await _persist();
+    notifyListeners();
   }
 
   Future<void> _persist() =>

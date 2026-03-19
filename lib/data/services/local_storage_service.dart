@@ -10,6 +10,8 @@ class LocalStorageService {
   static const String _exportDirectoryKey = 'export_directory_v1';
   static const String _exportHistoryKey = 'export_history_v1';
   static const String _paidOccurrencesKey = 'paid_occurrences_v1';
+  static const String _goalsKey = 'savings_goals_v1';
+  static const String _milestonesKey = 'goal_milestones_v1';
 
   final SharedPreferences _prefs;
 
@@ -109,4 +111,22 @@ class LocalStorageService {
   Future<void> writePaidOccurrences(Map<String, bool> paidOccurrences) async {
     await _prefs.setString(_paidOccurrencesKey, jsonEncode(paidOccurrences));
   }
+
+  // ---------------------------------------------------------------------------
+  // Savings Goals
+  // ---------------------------------------------------------------------------
+
+  List<Map<String, dynamic>> readGoals() => _readList(_goalsKey);
+
+  Future<void> writeGoals(List<Map<String, dynamic>> goals) =>
+      _writeList(_goalsKey, goals);
+
+  // ---------------------------------------------------------------------------
+  // Goal Milestones
+  // ---------------------------------------------------------------------------
+
+  List<Map<String, dynamic>> readMilestones() => _readList(_milestonesKey);
+
+  Future<void> writeMilestones(List<Map<String, dynamic>> milestones) =>
+      _writeList(_milestonesKey, milestones);
 }

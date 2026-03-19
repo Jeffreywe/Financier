@@ -6,6 +6,9 @@ import 'package:financier/ui/feature/dashboard/dashboard_screen.dart';
 import 'package:financier/ui/feature/debt/add_edit_debt_screen.dart';
 import 'package:financier/ui/feature/debt/debt_detail_screen.dart';
 import 'package:financier/ui/feature/debt/debt_screen.dart';
+import 'package:financier/ui/feature/goals/goals_screen.dart';
+import 'package:financier/ui/feature/goals/add_edit_goal_screen.dart';
+import 'package:financier/ui/feature/goals/goal_detail_screen.dart';
 import 'package:financier/ui/feature/transactions/add_edit_transaction_screen.dart';
 import 'package:financier/ui/feature/transactions/transactions_screen.dart';
 import 'package:financier/ui/core/widgets/root_scaffold.dart';
@@ -51,6 +54,30 @@ final GoRouter appRouter = GoRouter(
                   builder: (_, state) => AddEditAccountScreen(
                     accountId: state.pathParameters['id'],
                   ),
+                ),
+                GoRoute(
+                  path: 'goals',
+                  name: 'goals',
+                  builder: (context, _) => const GoalsScreen(),
+                  routes: [
+                    GoRoute(
+                      path: 'add',
+                      name: 'goal-add',
+                      builder: (context, _) => const AddEditGoalScreen(),
+                    ),
+                    GoRoute(
+                      path: 'edit/:id',
+                      name: 'goal-edit',
+                      builder: (_, state) =>
+                          AddEditGoalScreen(goalId: state.pathParameters['id']),
+                    ),
+                    GoRoute(
+                      path: 'detail/:id',
+                      name: 'goal-detail',
+                      builder: (context, state) =>
+                          GoalDetailScreen(goalId: state.pathParameters['id']!),
+                    ),
+                  ],
                 ),
               ],
             ),

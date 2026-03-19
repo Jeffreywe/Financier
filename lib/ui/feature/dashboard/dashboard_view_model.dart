@@ -1,5 +1,7 @@
 import 'package:financier/data/repositories/accounts_repository.dart';
 import 'package:financier/data/repositories/debt_repository.dart';
+import 'package:financier/data/repositories/goal_milestones_repository.dart';
+import 'package:financier/data/repositories/goals_repository.dart';
 import 'package:financier/data/repositories/transactions_repository.dart';
 import 'package:financier/domain/models/transaction.dart';
 import 'package:flutter/foundation.dart';
@@ -57,9 +59,23 @@ class DashboardViewModel extends ChangeNotifier {
   final TransactionsRepository _txRepo;
   final AccountsRepository _accountsRepo;
   final DebtRepository _debtRepo;
+  final GoalsRepository _goalsRepo;
+  final GoalMilestonesRepository _milestonesRepo;
   DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
-  DashboardViewModel(this._txRepo, this._accountsRepo, this._debtRepo);
+  DashboardViewModel(
+    this._txRepo,
+    this._accountsRepo,
+    this._debtRepo,
+    this._goalsRepo,
+    this._milestonesRepo,
+  ) {
+    _txRepo.addListener(_onRepositoryChanged);
+    _accountsRepo.addListener(_onRepositoryChanged);
+    _debtRepo.addListener(_onRepositoryChanged);
+    _goalsRepo.addListener(_onRepositoryChanged);
+    _milestonesRepo.addListener(_onRepositoryChanged);
+  }
 
   DateTime get _now => DateTime.now();
   DateTime get selectedMonth => _selectedMonth;
@@ -503,7 +519,18 @@ class DashboardViewModel extends ChangeNotifier {
   }
 
   Future<void> toggleOutlookItemPaid(OutlookItem item) async {
+    final wasPaid = _txRepo.isOccurrencePaid(item.transactionId, item.date);
     await _txRepo.toggleOccurrencePaid(item.transactionId, item.date);
+    final nowPaid = _txRepo.isOccurrencePaid(item.transactionId, item.date);
+    final transaction = _txRepo.findById(item.transactionId);
+    if (transaction != null) {
+      await _syncGoalFromPaidToggle(
+        transaction: transaction,
+        occurrenceDate: item.date,
+        wasPaid: wasPaid,
+        nowPaid: nowPaid,
+      );
+    }
     notifyListeners();
   }
 
@@ -512,9 +539,65 @@ class DashboardViewModel extends ChangeNotifier {
   }
 
   Future<void> toggleOccurrencePaid(String transactionId, DateTime date) async {
+    final wasPaid = _txRepo.isOccurrencePaid(transactionId, date);
     await _txRepo.toggleOccurrencePaid(transactionId, date);
+    final nowPaid = _txRepo.isOccurrencePaid(transactionId, date);
+    final transaction = _txRepo.findById(transactionId);
+    if (transaction != null) {
+      await _syncGoalFromPaidToggle(
+        transaction: transaction,
+        occurrenceDate: date,
+        wasPaid: wasPaid,
+        nowPaid: nowPaid,
+      );
+    }
     notifyListeners();
   }
 
+  Future<void> _syncGoalFromPaidToggle({
+    required Transaction transaction,
+    required DateTime occurrenceDate,
+    required bool wasPaid,
+    required bool nowPaid,
+  }) async {
+    if (wasPaid == nowPaid) return;
+    final goalId = transaction.goalId;
+    if (goalId == null) return;
+
+    final goal = _goalsRepo.findById(goalId);
+    if (goal == null) return;
+
+    final delta = nowPaid ? transaction.amount : -transaction.amount;
+    final newAmount = (goal.currentAmount + delta).clamp(0.0, goal.targetAmount);
+    await _goalsRepo.update(
+      goal.copyWith(currentAmount: newAmount, updatedAt: DateTime.now()),
+    );
+
+    final milestones = _milestonesRepo.milestonesForGoal(goalId);
+    for (final milestone in milestones) {
+      if (!milestone.isCompleted && newAmount >= milestone.targetAmount) {
+        await _milestonesRepo.update(
+          milestone.copyWith(completedAt: occurrenceDate),
+        );
+      } else if (milestone.isCompleted && newAmount < milestone.targetAmount) {
+        await _milestonesRepo.update(milestone.copyWith(clearCompletedAt: true));
+      }
+    }
+  }
+
   void refresh() => notifyListeners();
+
+  void _onRepositoryChanged() {
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _txRepo.removeListener(_onRepositoryChanged);
+    _accountsRepo.removeListener(_onRepositoryChanged);
+    _debtRepo.removeListener(_onRepositoryChanged);
+    _goalsRepo.removeListener(_onRepositoryChanged);
+    _milestonesRepo.removeListener(_onRepositoryChanged);
+    super.dispose();
+  }
 }

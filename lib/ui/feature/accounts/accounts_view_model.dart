@@ -10,7 +10,9 @@ class AccountsViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  AccountsViewModel(this._repository);
+  AccountsViewModel(this._repository) {
+    _repository.addListener(_onRepositoryChanged);
+  }
 
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -77,5 +79,15 @@ class AccountsViewModel extends ChangeNotifier {
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
+  }
+
+  void _onRepositoryChanged() {
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _repository.removeListener(_onRepositoryChanged);
+    super.dispose();
   }
 }

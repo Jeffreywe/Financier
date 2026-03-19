@@ -33,7 +33,10 @@ class DebtViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  DebtViewModel(this._repository, this._transactionsRepository);
+  DebtViewModel(this._repository, this._transactionsRepository) {
+    _repository.addListener(_onRepositoryChanged);
+    _transactionsRepository.addListener(_onRepositoryChanged);
+  }
 
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -271,6 +274,17 @@ class DebtViewModel extends ChangeNotifier {
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
+  }
+
+  void _onRepositoryChanged() {
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _repository.removeListener(_onRepositoryChanged);
+    _transactionsRepository.removeListener(_onRepositoryChanged);
+    super.dispose();
   }
 }
 

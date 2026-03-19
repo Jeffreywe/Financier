@@ -53,7 +53,10 @@ class BudgetViewModel extends ChangeNotifier {
   DateTime _selectedMonth;
 
   BudgetViewModel(this._txRepo, this._catRepo)
-    : _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+    : _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month) {
+    _txRepo.addListener(_onRepositoryChanged);
+    _catRepo.addListener(_onRepositoryChanged);
+  }
 
   DateTime get selectedMonth => _selectedMonth;
 
@@ -180,5 +183,16 @@ class BudgetViewModel extends ChangeNotifier {
 
   void refresh() {
     notifyListeners();
+  }
+
+  void _onRepositoryChanged() {
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _txRepo.removeListener(_onRepositoryChanged);
+    _catRepo.removeListener(_onRepositoryChanged);
+    super.dispose();
   }
 }
